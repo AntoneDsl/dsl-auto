@@ -4,6 +4,28 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'dart:convert';
 
+void main() {
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'DSL AUTO',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: const Color(0xFF121214),
+        primaryColor: const Color(0xFFE53935),
+      ),
+      home: const HomeScreen(),
+    );
+  }
+}
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -15,173 +37,105 @@ class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
 
   String _userName = 'Александр';
-  String _currentCarName = 'Audi A3';
-  String _currentCarDetails = '2019 • 2.0 TDI • S tronic';
-  String _currentCarPlate = 'KA 1234 AB';
-  double _mileage = 145250;
+
+  // Ключ для привязки данных к конкретному автомобилю в гараже
+  String _activeCarId = 'default_car';
+
+  String _currentCarName = 'Мой автомобиль';
+  String _currentCarDetails = 'Добавьте параметры';
+  String _currentCarPlate = 'AA 0000 AA';
+  double _mileage = 0.0;
   String? _currentCarImage;
   String _currentSeasonTyre = 'Летняя резина';
 
-  List<Map<String, dynamic>> _cars = [
-    {
-      'name': 'Audi A3',
-      'details': '2019 • 2.0 TDI • S tronic',
-      'plate': 'KA 1234 AB',
-      'mileage': 145250.0,
-      'imagePath': null,
-      'seasonTyre': 'Летняя резина',
-    },
-    {
-      'name': 'Mazda CX-5',
-      'details': '2021 • 2.5 SkyActiv-G • 6AT',
-      'plate': 'KA 5678 CD',
-      'mileage': 98500.0,
-      'imagePath': null,
-      'seasonTyre': 'Зимняя резина',
-    },
-  ];
+  // Полис страхования (привязан к активному авто через сохранение)
+  Map<String, dynamic> _insuranceData = {
+    'company': 'ПЗУ Украина',
+    'policyNumber': 'AA 1234567',
+    'expiryDate': '2026-09-15',
+  };
+
+  List<Map<String, dynamic>> _cars = [];
 
   List<Map<String, dynamic>> _carParts = [
     {
       'title': 'Масло двигателя',
-      'remainingKm': 500,
+      'remainingKm': 0,
       'maxKm': 10000,
-      'subtitle': 'требует замены',
+      'subtitle': 'настройте ресурс',
       'icon': Icons.oil_barrel,
-      'color': const Color(0xFFE53935),
-      'history': [
-        {'date': '15.06.2026', 'mileage': 142900, 'cost': '2 450 грн'}
-      ]
+      'color': Colors.grey,
+      'history': []
     },
     {
       'title': 'Масло в АКПП',
-      'remainingKm': 12000,
+      'remainingKm': 0,
       'maxKm': 60000,
-      'subtitle': 'норма',
+      'subtitle': 'настройте ресурс',
       'icon': Icons.settings_applications,
-      'color': Colors.green,
+      'color': Colors.grey,
       'history': [],
     },
     {
       'title': 'Тормозная жидкость',
-      'remainingKm': 15000,
+      'remainingKm': 0,
       'maxKm': 40000,
-      'subtitle': 'норма',
+      'subtitle': 'настройте ресурс',
       'icon': Icons.opacity,
-      'color': Colors.green,
+      'color': Colors.grey,
       'history': [],
     },
     {
       'title': 'Свечи зажигания',
-      'remainingKm': 18000,
+      'remainingKm': 0,
       'maxKm': 30000,
-      'subtitle': 'норма',
+      'subtitle': 'настройте ресурс',
       'icon': Icons.flash_on,
-      'color': Colors.green,
+      'color': Colors.grey,
       'history': [],
     },
     {
       'title': 'Ремень / цепь ГРМ',
-      'remainingKm': 35000,
+      'remainingKm': 0,
       'maxKm': 90000,
-      'subtitle': 'норма',
+      'subtitle': 'настройте ресурс',
       'icon': Icons.all_inclusive,
-      'color': Colors.green,
+      'color': Colors.grey,
       'history': [],
     },
     {
       'title': 'Воздушный фильтр',
-      'remainingKm': 8500,
+      'remainingKm': 0,
       'maxKm': 15000,
-      'subtitle': 'норма',
+      'subtitle': 'настройте ресурс',
       'icon': Icons.air,
-      'color': Colors.green,
-      'history': [
-        {'date': '10.01.2026', 'mileage': 130000, 'cost': '650 грн'}
-      ]
+      'color': Colors.grey,
+      'history': []
     },
     {
       'title': 'Тормозные колодки',
-      'remainingKm': 12000,
+      'remainingKm': 0,
       'maxKm': 30000,
-      'subtitle': 'износ 60%',
+      'subtitle': 'настройте ресурс',
       'icon': Icons.settings_suggest,
-      'color': Colors.orange,
-      'history': [
-        {'date': '20.09.2025', 'mileage': 120000, 'cost': '3 200 грн'}
-      ]
+      'color': Colors.grey,
+      'history': []
     },
     {
       'title': 'Аккумулятор',
-      'remainingKm': 40000,
+      'remainingKm': 0,
       'maxKm': 50000,
-      'subtitle': 'норма',
+      'subtitle': 'настройте ресурс',
       'icon': Icons.battery_charging_full,
-      'color': Colors.green,
+      'color': Colors.grey,
       'history': [],
     },
   ];
 
-  List<Map<String, dynamic>> _logs = [
-    {
-      'title': 'Замена масла и фильтра',
-      'subtitle': '142 900 км • 15.06.2026',
-      'price': '2 450 грн',
-      'category': 'ТО и ремонт',
-      'icon': Icons.build_circle
-    },
-    {
-      'title': 'Заправка А95+',
-      'subtitle': '143 500 км • 20.06.2026',
-      'price': '1 850 грн',
-      'category': 'Топливо',
-      'icon': Icons.local_gas_station
-    },
-  ];
-
-  List<Map<String, dynamic>> _refuels = [
-    {
-      'liters': 35.5,
-      'price': 1850.0,
-      'mileage': 143500.0,
-      'date': '20.06.2026',
-      'consumption': 8.2
-    },
-    {
-      'liters': 40.0,
-      'price': 2100.0,
-      'mileage': 142800.0,
-      'date': '10.06.2026',
-      'consumption': 8.5
-    },
-  ];
-
-  List<Map<String, dynamic>> _reminders = [
-    {
-      'title': 'Замена масла двигателя',
-      'deadline': 'Через 500 км',
-      'isUrgent': true,
-      'icon': Icons.oil_barrel,
-      'progress': 0.95,
-      'iconBgColor': const Color(0xFFE53935),
-    },
-    {
-      'title': 'Сезонная замена шин',
-      'deadline': 'Подготовка к зиме / лету',
-      'isUrgent': false,
-      'icon': Icons.tire_repair,
-      'progress': null,
-      'iconBgColor': Colors.orangeAccent,
-    },
-    {
-      'title': 'Страховка ОСАГО',
-      'deadline': '14.09.2026',
-      'isUrgent': false,
-      'icon': Icons.description,
-      'progress': null,
-      'iconBgColor': Colors.blueAccent,
-    },
-  ];
+  List<Map<String, dynamic>> _logs = [];
+  List<Map<String, dynamic>> _refuels = [];
+  List<Map<String, dynamic>> _reminders = [];
+  List<Map<String, dynamic>> _trips = []; // История поездок
 
   @override
   void initState() {
@@ -189,103 +143,259 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadData();
   }
 
+  // Загрузка общих данных и списка авто
   Future<void> _loadData() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _userName = prefs.getString('user_name') ?? _userName;
-      _currentCarName = prefs.getString('current_car_name') ?? _currentCarName;
-      _currentCarDetails =
-          prefs.getString('current_car_details') ?? _currentCarDetails;
-      _currentCarPlate =
-          prefs.getString('current_car_plate') ?? _currentCarPlate;
-      _mileage = prefs.getDouble('current_mileage') ?? _mileage;
-      _currentCarImage = prefs.getString('current_car_image');
-      _currentSeasonTyre =
-          prefs.getString('current_season_tyre') ?? _currentSeasonTyre;
+      _activeCarId = prefs.getString('active_car_id') ?? 'default_car';
 
       String? carsString = prefs.getString('cars_list_data');
       if (carsString != null) {
         List decodedCars = jsonDecode(carsString);
         _cars = decodedCars.map((e) => Map<String, dynamic>.from(e)).toList();
       }
-
-      String? partsString = prefs.getString('car_parts_data');
-      if (partsString != null) {
-        List decodedParts = jsonDecode(partsString);
-        _carParts = decodedParts.map((e) {
-          var map = Map<String, dynamic>.from(e);
-          map['icon'] = _getIconData(map['iconCode']);
-          return map;
-        }).toList();
-      }
-
-      String? logsString = prefs.getString('logs_data');
-      if (logsString != null) {
-        List decoded = jsonDecode(logsString);
-        _logs = decoded.map((e) => Map<String, dynamic>.from(e)).map((log) {
-          log['icon'] = _getIconData(log['iconCode']);
-          return log;
-        }).toList();
-      }
-
-      String? refuelsString = prefs.getString('refuels_data');
-      if (refuelsString != null) {
-        List decoded = jsonDecode(refuelsString);
-        _refuels = decoded.map((e) => Map<String, dynamic>.from(e)).toList();
-      }
-
-      String? remindersString = prefs.getString('reminders_data');
-      if (remindersString != null) {
-        List decoded = jsonDecode(remindersString);
-        _reminders =
-            decoded.map((e) => Map<String, dynamic>.from(e)).map((rem) {
-          rem['icon'] = _getIconData(rem['iconCode']);
-          return rem;
-        }).toList();
-      }
-    });
+    }); // Загружаем специфичные данные для активного автомобиля
+    await _loadCarSpecificData(_activeCarId);
   }
 
+  // Загрузка параметров конкретного авто (запчасти, логи, заправки, страховки)
+  Future<void> _loadCarSpecificData(String carId) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    // Если есть машины в гараже, подтягиваем параметры выбранной
+    if (_cars.isNotEmpty) {
+      var foundCar = _cars.firstWhere(
+        (c) => c['id'] == carId,
+        orElse: () => _cars.first,
+      );
+      _activeCarId = foundCar['id'] ?? 'default_car';
+      _currentCarName = foundCar['name'] ?? 'Мой автомобиль';
+      _currentCarDetails = foundCar['details'] ?? 'Добавьте параметры';
+      _currentCarPlate = foundCar['plate'] ?? 'AA 0000 AA';
+      _mileage = (foundCar['mileage'] as num?)?.toDouble() ?? 0.0;
+      _currentCarImage = foundCar['imagePath'];
+      _currentSeasonTyre = foundCar['seasonTyre'] ?? 'Летняя резина';
+    }
+
+    // Загрузка изолированных списков по префиксу авто
+    String prefix = 'car_${_activeCarId}_';
+
+    String? insuranceString = prefs.getString('${prefix}insurance_data');
+    if (insuranceString != null) {
+      _insuranceData = Map<String, dynamic>.from(jsonDecode(insuranceString));
+    } else {
+      _insuranceData = {
+        'company': 'ПЗУ Украина',
+        'policyNumber': 'AA 1234567',
+        'expiryDate': '2026-09-15'
+      };
+    }
+
+    String? partsString = prefs.getString('${prefix}car_parts_data');
+    if (partsString != null) {
+      List decodedParts = jsonDecode(partsString);
+      _carParts = decodedParts.map((e) {
+        var map = Map<String, dynamic>.from(e);
+        map['icon'] = _getIconData(map['iconCode']);
+        map['color'] =
+            map['colorValue'] != null ? Color(map['colorValue']) : Colors.grey;
+        return map;
+      }).toList();
+    } else {
+      // Сброс на дефолтные значения если для авто еще не создавались
+      _resetDefaultParts();
+    }
+
+    String? logsString = prefs.getString('${prefix}logs_data');
+    if (logsString != null) {
+      List decoded = jsonDecode(logsString);
+      _logs = decoded.map((e) {
+        var map = Map<String, dynamic>.from(e);
+        map['icon'] = _getIconData(map['iconCode']);
+        return map;
+      }).toList();
+    } else {
+      _logs = [];
+    }
+
+    String? refuelsString = prefs.getString('${prefix}refuels_data');
+    if (refuelsString != null) {
+      List decoded = jsonDecode(refuelsString);
+      _refuels = decoded.map((e) => Map<String, dynamic>.from(e)).toList();
+    } else {
+      _refuels = [];
+    }
+
+    String? remindersString = prefs.getString('${prefix}reminders_data');
+    if (remindersString != null) {
+      List decoded = jsonDecode(remindersString);
+      _reminders = decoded.map((e) {
+        var map = Map<String, dynamic>.from(e);
+        map['icon'] = _getIconData(map['iconCode']);
+        map['iconBgColor'] = map['iconBgColorValue'] != null
+            ? Color(map['iconBgColorValue'])
+            : const Color(0xFFE53935);
+        return map;
+      }).toList();
+    } else {
+      _reminders = [];
+    }
+
+    String? tripsString = prefs.getString('${prefix}trips_data');
+    if (tripsString != null) {
+      List decoded = jsonDecode(tripsString);
+      _trips = decoded.map((e) => Map<String, dynamic>.from(e)).toList();
+    } else {
+      _trips = [];
+    }
+
+    setState(() {});
+  }
+
+  void _resetDefaultParts() {
+    _carParts = [
+      {
+        'title': 'Масло двигателя',
+        'remainingKm': 10000,
+        'maxKm': 10000,
+        'subtitle': 'норма',
+        'icon': Icons.oil_barrel,
+        'color': Colors.green,
+        'history': []
+      },
+      {
+        'title': 'Масло в АКПП',
+        'remainingKm': 60000,
+        'maxKm': 60000,
+        'subtitle': 'норма',
+        'icon': Icons.settings_applications,
+        'color': Colors.green,
+        'history': []
+      },
+      {
+        'title': 'Тормозная жидкость',
+        'remainingKm': 40000,
+        'maxKm': 40000,
+        'subtitle': 'норма',
+        'icon': Icons.opacity,
+        'color': Colors.green,
+        'history': []
+      },
+      {
+        'title': 'Свечи зажигания',
+        'remainingKm': 30000,
+        'maxKm': 30000,
+        'subtitle': 'норма',
+        'icon': Icons.flash_on,
+        'color': Colors.green,
+        'history': []
+      },
+      {
+        'title': 'Ремень / цепь ГРМ',
+        'remainingKm': 90000,
+        'maxKm': 90000,
+        'subtitle': 'норма',
+        'icon': Icons.all_inclusive,
+        'color': Colors.green,
+        'history': []
+      },
+      {
+        'title': 'Воздушный фильтр',
+        'remainingKm': 15000,
+        'maxKm': 15000,
+        'subtitle': 'норма',
+        'icon': Icons.air,
+        'color': Colors.green,
+        'history': []
+      },
+      {
+        'title': 'Тормозные колодки',
+        'remainingKm': 30000,
+        'maxKm': 30000,
+        'subtitle': 'норма',
+        'icon': Icons.settings_suggest,
+        'color': Colors.green,
+        'history': []
+      },
+      {
+        'title': 'Аккумулятор',
+        'remainingKm': 50000,
+        'maxKm': 50000,
+        'subtitle': 'норма',
+        'icon': Icons.battery_charging_full,
+        'color': Colors.green,
+        'history': []
+      },
+    ];
+  }
+
+  // Сохранение данных
   Future<void> _saveData() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('user_name', _userName);
-    await prefs.setString('current_car_name', _currentCarName);
-    await prefs.setString('current_car_details', _currentCarDetails);
-    await prefs.setString('current_car_plate', _currentCarPlate);
-    await prefs.setDouble('current_mileage', _mileage);
-    await prefs.setString('current_season_tyre', _currentSeasonTyre);
+    await prefs.setString('active_car_id', _activeCarId);
+    await prefs.setString('cars_list_data', jsonEncode(_cars));
 
-    if (_currentCarImage != null) {
-      await prefs.setString('current_car_image', _currentCarImage!);
-    } else {
-      await prefs.remove('current_car_image');
+    // Обновляем текущий авто в общем списке
+    for (var car in _cars) {
+      if (car['id'] == _activeCarId) {
+        car['name'] = _currentCarName;
+        car['details'] = _currentCarDetails;
+        car['plate'] = _currentCarPlate;
+        car['mileage'] = _mileage;
+        car['imagePath'] = _currentCarImage;
+        car['seasonTyre'] = _currentSeasonTyre;
+      }
     }
     await prefs.setString('cars_list_data', jsonEncode(_cars));
-    await prefs.setString('refuels_data', jsonEncode(_refuels));
+
+    // Сохранение специфичных данных по префиксу
+    String prefix = 'car_${_activeCarId}_';
+    await prefs.setString(
+        '${prefix}insurance_data', jsonEncode(_insuranceData));
+    await prefs.setString('${prefix}refuels_data', jsonEncode(_refuels));
+    await prefs.setString('${prefix}trips_data', jsonEncode(_trips));
 
     List serializedParts = _carParts.map((part) {
       var map = Map<String, dynamic>.from(part);
-      map['iconCode'] = (part['icon'] as IconData).codePoint;
+      if (part['icon'] is IconData) {
+        map['iconCode'] = (part['icon'] as IconData).codePoint;
+      }
+      if (part['color'] is Color) {
+        map['colorValue'] = (part['color'] as Color).value;
+      }
       map.remove('icon');
+      map.remove('color');
       return map;
     }).toList();
-    await prefs.setString('car_parts_data', jsonEncode(serializedParts));
+    await prefs.setString(
+        '${prefix}car_parts_data', jsonEncode(serializedParts));
 
     List serializedLogs = _logs.map((log) {
       var map = Map<String, dynamic>.from(log);
-      map['iconCode'] = (log['icon'] as IconData).codePoint;
+      if (log['icon'] is IconData) {
+        map['iconCode'] = (log['icon'] as IconData).codePoint;
+      }
       map.remove('icon');
       return map;
     }).toList();
-    await prefs.setString('logs_data', jsonEncode(serializedLogs));
+    await prefs.setString('${prefix}logs_data', jsonEncode(serializedLogs));
 
     List serializedReminders = _reminders.map((rem) {
       var map = Map<String, dynamic>.from(rem);
-      map['iconCode'] = (rem['icon'] as IconData).codePoint;
+      if (rem['icon'] is IconData) {
+        map['iconCode'] = (rem['icon'] as IconData).codePoint;
+      }
+      if (rem['iconBgColor'] is Color) {
+        map['iconBgColorValue'] = (rem['iconBgColor'] as Color).value;
+      }
       map.remove('icon');
+      map.remove('iconBgColor');
       return map;
     }).toList();
-    await prefs.setString('reminders_data', jsonEncode(serializedReminders));
+    await prefs.setString(
+        '${prefix}reminders_data', jsonEncode(serializedReminders));
   }
 
   IconData _getIconData(int? codePoint) {
@@ -303,19 +413,44 @@ class _HomeScreenState extends State<HomeScreen> {
     return total;
   }
 
+  Map<String, dynamic> _getInsuranceStatus() {
+    try {
+      final today = DateTime.now();
+      final expiry = DateTime.parse(_insuranceData['expiryDate']);
+      final diffDays = expiry.difference(today).inDays;
+
+      if (diffDays < 0) {
+        return {'color': const Color(0xFFE53935), 'text': 'Просрочена'};
+      }
+      if (diffDays <= 30) {
+        return {'color': Colors.orange, 'text': 'Осталось $diffDays дн.'};
+      }
+      return {
+        'color': Colors.green,
+        'text': 'До ${_insuranceData['expiryDate']}'
+      };
+    } catch (_) {
+      return {
+        'color': Colors.green,
+        'text': _insuranceData['expiryDate'] ?? 'Активна'
+      };
+    }
+  }
+
   void _applyMileageDelta(int mileageDiff) {
     if (mileageDiff <= 0) return;
 
     setState(() {
+      _mileage += mileageDiff;
       for (var part in _carParts) {
-        int rem = part['remainingKm'] - mileageDiff;
+        int rem = (part['remainingKm'] as int) - mileageDiff;
         if (rem < 0) rem = 0;
         part['remainingKm'] = rem;
 
         double max = (part['maxKm'] ?? 10000).toDouble();
-        double ratio = rem / max;
+        double ratio = max > 0 ? rem / max : 0;
 
-        if (rem == 0) {
+        if (rem == 0 && max > 0) {
           part['subtitle'] = 'требует замены';
           part['color'] = const Color(0xFFE53935);
         } else if (ratio < 0.2) {
@@ -330,6 +465,7 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       }
     });
+    _saveData();
   }
 
   void _toggleTyreSeason() {
@@ -337,18 +473,284 @@ class _HomeScreenState extends State<HomeScreen> {
       _currentSeasonTyre = _currentSeasonTyre == 'Летняя резина'
           ? 'Зимняя резина'
           : 'Летняя резина';
-      for (var car in _cars) {
-        if (car['name'] == _currentCarName) {
-          car['seasonTyre'] = _currentSeasonTyre;
-        }
-      }
     });
     _saveData();
     ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Установлена сезонность: $_currentSeasonTyre')));
+      SnackBar(content: Text('Установлена сезонность: $_currentSeasonTyre')),
+    );
   }
 
-  // Центр уведомлений (модальное окно при нажатии на колокольчик)
+  void _showInsuranceDialog() {
+    final companyController =
+        TextEditingController(text: _insuranceData['company']);
+    final numberController =
+        TextEditingController(text: _insuranceData['policyNumber']);
+    final dateController =
+        TextEditingController(text: _insuranceData['expiryDate']);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF1E1E22),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 20,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Полис страхования',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
+            TextField(
+              controller: companyController,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                labelText: 'Страховая компания',
+                labelStyle: const TextStyle(color: Colors.grey),
+                filled: true,
+                fillColor: const Color(0xFF2C2C30),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: numberController,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                labelText: 'Номер полиса',
+                labelStyle: const TextStyle(color: Colors.grey),
+                filled: true,
+                fillColor: const Color(0xFF2C2C30),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: dateController,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                labelText: 'Действителен до (ГГГГ-ММ-ДД)',
+                labelStyle: const TextStyle(color: Colors.grey),
+                filled: true,
+                fillColor: const Color(0xFF2C2C30),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none),
+              ),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFE53935),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () {
+                  setState(() {
+                    _insuranceData = {
+                      'company': companyController.text,
+                      'policyNumber': numberController.text,
+                      'expiryDate': dateController.text,
+                    };
+                  });
+                  _saveData();
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                      content: Text('Данные страховки обновлены!')));
+                },
+                child: const Text('Сохранить',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showAddRecordDialog() {
+    final titleController = TextEditingController();
+    final priceController = TextEditingController();
+    String selectedCategory = 'Топливо';
+
+    final categories = [
+      {'id': 'Топливо', 'name': 'Топливо', 'icon': '⛽'},
+      {'id': 'Ремонт', 'name': 'Ремонт', 'icon': '🔧'},
+      {'id': 'Мойка', 'name': 'Мойка', 'icon': '🧽'},
+      {'id': 'Штрафы', 'name': 'Штрафы', 'icon': '⚠️'},
+      {'id': 'Расходники', 'name': 'Расходники', 'icon': '📦'},
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF1E1E22),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 20,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Новая запись расходов',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: categories.map((cat) {
+                    final isSelected = selectedCategory == cat['id'];
+                    return GestureDetector(
+                      onTap: () =>
+                          setModalState(() => selectedCategory = cat['id']!),
+                      child: Container(
+                        margin: const EdgeInsets.only(right: 10),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? const Color(0xFFE53935)
+                              : const Color(0xFF2C2C30),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                              color: isSelected
+                                  ? const Color(0xFFE53935)
+                                  : Colors.transparent),
+                        ),
+                        child: Row(
+                          children: [
+                            Text(cat['icon']!,
+                                style: const TextStyle(fontSize: 16)),
+                            const SizedBox(width: 6),
+                            Text(cat['name']!,
+                                style: TextStyle(
+                                    color:
+                                        isSelected ? Colors.white : Colors.grey,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12)),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: titleController,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  labelText: 'Название или описание',
+                  labelStyle: const TextStyle(color: Colors.grey),
+                  filled: true,
+                  fillColor: const Color(0xFF2C2C30),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: priceController,
+                style: const TextStyle(color: Colors.white),
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: 'Сумма (грн)',
+                  labelStyle: const TextStyle(color: Colors.grey),
+                  filled: true,
+                  fillColor: const Color(0xFF2C2C30),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none),
+                ),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFE53935),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onPressed: () {
+                    if (priceController.text.isNotEmpty) {
+                      IconData catIcon = Icons.build_circle;
+                      if (selectedCategory == 'Топливо')
+                        catIcon = Icons.local_gas_station;
+                      if (selectedCategory == 'Ремонт') catIcon = Icons.build;
+                      if (selectedCategory == 'Мойка')
+                        catIcon = Icons.local_car_wash;
+                      if (selectedCategory == 'Штрафы') catIcon = Icons.warning;
+                      if (selectedCategory == 'Расходники')
+                        catIcon = Icons.category;
+
+                      String titleText = titleController.text.isEmpty
+                          ? selectedCategory
+                          : titleController.text;
+
+                      setState(() {
+                        _logs.insert(0, {
+                          'title': titleText,
+                          'subtitle': '${_mileage.toInt()} км • Только что',
+                          'price': '${priceController.text} грн',
+                          'category': selectedCategory,
+                          'icon': catIcon,
+                        });
+                      });
+                      _saveData();
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Запись добавлена!')));
+                    }
+                  },
+                  child: const Text('Сохранить запись',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   void _showNotificationsCenter() {
     showModalBottomSheet(
       context: context,
@@ -578,8 +980,12 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // Калькулятор поездки с историей (Требование 1)
   void _showTripCalculatorDialog() {
+    final fromController = TextEditingController();
+    final toController = TextEditingController();
     final distanceController = TextEditingController();
+
     double avgConsumption =
         _refuels.isNotEmpty ? (_refuels.first['consumption'] ?? 8.5) : 8.5;
     final consumptionController =
@@ -613,7 +1019,7 @@ class _HomeScreenState extends State<HomeScreen> {
           double distance = double.tryParse(distanceController.text) ?? 0.0;
           double consumption =
               double.tryParse(consumptionController.text) ?? 8.5;
-          double pricePerLiter = double.tryParse(priceController.text) ?? 52.0;
+          double pricePerLiter = double.tryParse(priceController.text) ?? 0.0;
 
           double totalLitersNeeded = (distance * consumption) / 100;
           double totalCost = totalLitersNeeded * pricePerLiter;
@@ -625,141 +1031,220 @@ class _HomeScreenState extends State<HomeScreen> {
               top: 20,
               bottom: MediaQuery.of(context).viewInsets.bottom + 20,
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Калькулятор поездки',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold)),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: distanceController,
-                  style: const TextStyle(color: Colors.white),
-                  keyboardType: TextInputType.number,
-                  onChanged: (val) => setModalState(() {}),
-                  decoration: InputDecoration(
-                    labelText: 'Расстояние (км)',
-                    labelStyle: const TextStyle(color: Colors.grey),
-                    filled: true,
-                    fillColor: const Color(0xFF2C2C30),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: consumptionController,
-                        style: const TextStyle(color: Colors.white),
-                        keyboardType: TextInputType.number,
-                        onChanged: (val) => setModalState(() {}),
-                        decoration: InputDecoration(
-                          labelText: 'Расход (л/100км)',
-                          labelStyle: const TextStyle(color: Colors.grey),
-                          filled: true,
-                          fillColor: const Color(0xFF2C2C30),
-                          border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextField(
-                        controller: priceController,
-                        style: const TextStyle(color: Colors.white),
-                        keyboardType: TextInputType.number,
-                        onChanged: (val) => setModalState(() {}),
-                        decoration: InputDecoration(
-                          labelText: 'Цена за 1 л (грн)',
-                          labelStyle: const TextStyle(color: Colors.grey),
-                          filled: true,
-                          fillColor: const Color(0xFF2C2C30),
-                          border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF2C2C30),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Калькулятор и расчет поездки',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 16),
+                  Row(
                     children: [
-                      const Text('Результат расчета поездки',
-                          style: TextStyle(color: Colors.grey, fontSize: 12)),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          Column(
-                            children: [
-                              const Text('Топливо',
-                                  style: TextStyle(
-                                      color: Colors.grey, fontSize: 11)),
-                              const SizedBox(height: 2),
-                              Text('${totalLitersNeeded.toStringAsFixed(1)} л',
-                                  style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold)),
-                            ],
+                      Expanded(
+                        child: TextField(
+                          controller: fromController,
+                          style: const TextStyle(color: Colors.white),
+                          decoration: InputDecoration(
+                            labelText: 'Откуда',
+                            labelStyle: const TextStyle(color: Colors.grey),
+                            filled: true,
+                            fillColor: const Color(0xFF2C2C30),
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide.none),
                           ),
-                          Container(
-                              width: 1,
-                              height: 25,
-                              color: Colors.white.withOpacity(0.1)),
-                          Column(
-                            children: [
-                              const Text('Стоимость',
-                                  style: TextStyle(
-                                      color: Colors.grey, fontSize: 11)),
-                              const SizedBox(height: 2),
-                              Text('${totalCost.toStringAsFixed(0)} грн',
-                                  style: const TextStyle(
-                                      color: Color(0xFFE53935),
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold)),
-                            ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          controller: toController,
+                          style: const TextStyle(color: Colors.white),
+                          decoration: InputDecoration(
+                            labelText: 'Куда',
+                            labelStyle: const TextStyle(color: Colors.grey),
+                            filled: true,
+                            fillColor: const Color(0xFF2C2C30),
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide.none),
                           ),
-                        ],
+                        ),
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFE53935),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: distanceController,
+                    style: const TextStyle(color: Colors.white),
+                    keyboardType: TextInputType.number,
+                    onChanged: (val) => setModalState(() {}),
+                    decoration: InputDecoration(
+                      labelText: 'Расстояние (км)',
+                      labelStyle: const TextStyle(color: Colors.grey),
+                      filled: true,
+                      fillColor: const Color(0xFF2C2C30),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none),
                     ),
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Готово',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold)),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: consumptionController,
+                          style: const TextStyle(color: Colors.white),
+                          keyboardType: TextInputType.number,
+                          onChanged: (val) => setModalState(() {}),
+                          decoration: InputDecoration(
+                            labelText: 'Расход (л/100км)',
+                            labelStyle: const TextStyle(color: Colors.grey),
+                            filled: true,
+                            fillColor: const Color(0xFF2C2C30),
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide.none),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: priceController,
+                          style: const TextStyle(color: Colors.white),
+                          keyboardType: TextInputType.number,
+                          onChanged: (val) => setModalState(() {}),
+                          decoration: InputDecoration(
+                            labelText: 'Цена 1л (грн)',
+                            labelStyle: const TextStyle(color: Colors.grey),
+                            filled: true,
+                            fillColor: const Color(0xFF2C2C30),
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide.none),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2C2C30),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      children: [
+                        const Text('Результат расчета поездки',
+                            style: TextStyle(color: Colors.grey, fontSize: 12)),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            Column(
+                              children: [
+                                const Text('Топливо',
+                                    style: TextStyle(
+                                        color: Colors.grey, fontSize: 11)),
+                                const SizedBox(height: 2),
+                                Text(
+                                    '${totalLitersNeeded.toStringAsFixed(1)} л',
+                                    style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                            Container(
+                                width: 1,
+                                height: 25,
+                                color: Colors.white.withOpacity(0.1)),
+                            Column(
+                              children: [
+                                const Text('Стоимость',
+                                    style: TextStyle(
+                                        color: Colors.grey, fontSize: 11)),
+                                const SizedBox(height: 2),
+                                Text('${totalCost.toStringAsFixed(0)} грн',
+                                    style: const TextStyle(
+                                        color: Color(0xFFE53935),
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Color(0xFFE53935)),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Закрыть',
+                              style: TextStyle(color: Colors.white)),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFE53935),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                          onPressed: () {
+                            if (distance > 0) {
+                              setState(() {
+                                _trips.insert(0, {
+                                  'from': fromController.text.isEmpty
+                                      ? 'Старт'
+                                      : fromController.text,
+                                  'to': toController.text.isEmpty
+                                      ? 'Финиш'
+                                      : toController.text,
+                                  'distance': distance,
+                                  'cost': totalCost.toStringAsFixed(0),
+                                  'liters':
+                                      totalLitersNeeded.toStringAsFixed(1),
+                                  'date': 'Только что',
+                                });
+                              });
+                              _saveData();
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                      content: Text(
+                                          'Поездка сохранена в историю!')));
+                            }
+                          },
+                          child: const Text('Сохранить поездку',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           );
         },
@@ -778,7 +1263,6 @@ class _HomeScreenState extends State<HomeScreen> {
         reminderToEdit != null && reminderToEdit['progress'] != null
             ? 'По пробегу'
             : 'По дате';
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -847,7 +1331,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 decoration: InputDecoration(
                   labelText: reminderType == 'По пробегу'
                       ? 'Срок (например, Через 2000 км)'
-                      : 'Дата (например, 14.09.2026)',
+                      : 'Дата (например, 2026-09-15)',
                   labelStyle: const TextStyle(color: Colors.grey),
                   filled: true,
                   fillColor: const Color(0xFF2C2C30),
@@ -961,9 +1445,10 @@ class _HomeScreenState extends State<HomeScreen> {
     final brandController =
         TextEditingController(text: carToEdit?['name'] ?? '');
     final yearController = TextEditingController(
-        text: carToEdit != null
-            ? carToEdit['details'].toString().split(' • ')[0]
-            : '');
+        text:
+            carToEdit != null && carToEdit['details'].toString().contains(' • ')
+                ? carToEdit['details'].toString().split(' • ')[0]
+                : '');
     final engineController = TextEditingController(
         text: carToEdit != null &&
                 carToEdit['details'].toString().contains(' • ')
@@ -1161,10 +1646,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         String plate = plateController.text.toUpperCase();
                         double mileage =
                             double.tryParse(mileageController.text) ?? 0.0;
+                        String uniqueId = carToEdit != null
+                            ? carToEdit['id']
+                            : DateTime.now().millisecondsSinceEpoch.toString();
 
                         setState(() {
                           if (carToEdit == null) {
                             _cars.add({
+                              'id': uniqueId,
                               'name': carName,
                               'details': details,
                               'plate': plate,
@@ -1172,22 +1661,28 @@ class _HomeScreenState extends State<HomeScreen> {
                               'imagePath': tempImagePath,
                               'seasonTyre': tempSeasonTyre,
                             });
+                            _activeCarId = uniqueId;
                             _currentCarName = carName;
                             _currentCarDetails = details;
                             _currentCarPlate = plate;
                             _mileage = mileage;
                             _currentCarImage = tempImagePath;
                             _currentSeasonTyre = tempSeasonTyre;
+                            _resetDefaultParts();
+                            _logs.clear();
+                            _refuels.clear();
+                            _reminders.clear();
+                            _trips.clear();
                           } else {
-                            _cars[editIndex!] = {
-                              'name': carName,
-                              'details': details,
-                              'plate': plate,
-                              'mileage': mileage,
-                              'imagePath': tempImagePath,
-                              'seasonTyre': tempSeasonTyre,
-                            };
-                            if (_currentCarName == carToEdit['name']) {
+                            carToEdit['id'] = uniqueId;
+                            carToEdit['name'] = carName;
+                            carToEdit['details'] = details;
+                            carToEdit['plate'] = plate;
+                            carToEdit['mileage'] = mileage;
+                            carToEdit['imagePath'] = tempImagePath;
+                            carToEdit['seasonTyre'] = tempSeasonTyre;
+
+                            if (_activeCarId == uniqueId) {
                               _currentCarName = carName;
                               _currentCarDetails = details;
                               _currentCarPlate = plate;
@@ -1201,7 +1696,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Navigator.pop(context);
                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                             content: Text(carToEdit == null
-                                ? 'Автомобиль добавлен!'
+                                ? 'Автомобиль добавлен в гараж!'
                                 : 'Изменения сохранены!')));
                       }
                     },
@@ -1318,7 +1813,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     double consumption = 8.5;
                     if (_refuels.isNotEmpty) {
-                      double lastMileage = _refuels.first['mileage'];
+                      double lastMileage =
+                          (_refuels.first['mileage'] as num).toDouble();
                       double distance = newMileage - lastMileage;
                       if (distance > 0) {
                         consumption = double.parse(
@@ -1358,135 +1854,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  void _showAddRecordDialog() {
-    final titleController = TextEditingController();
-    final priceController = TextEditingController();
-    String selectedCategory = 'ТО и ремонт';
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: const Color(0xFF1E1E22),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) => Padding(
-          padding: EdgeInsets.only(
-            left: 20,
-            right: 20,
-            top: 20,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Новая запись расходов',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold)),
-              const SizedBox(height: 16),
-              TextField(
-                controller: titleController,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  labelText: 'Название работы или покупки',
-                  labelStyle: const TextStyle(color: Colors.grey),
-                  filled: true,
-                  fillColor: const Color(0xFF2C2C30),
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: priceController,
-                style: const TextStyle(color: Colors.white),
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: 'Стоимость (грн)',
-                  labelStyle: const TextStyle(color: Colors.grey),
-                  filled: true,
-                  fillColor: const Color(0xFF2C2C30),
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none),
-                ),
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                value: selectedCategory,
-                dropdownColor: const Color(0xFF2C2C30),
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  labelText: 'Категория',
-                  labelStyle: const TextStyle(color: Colors.grey),
-                  filled: true,
-                  fillColor: const Color(0xFF2C2C30),
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none),
-                ),
-                items: ['ТО и ремонт', 'Топливо', 'Страховка', 'Мойка / Прочее']
-                    .map(
-                        (cat) => DropdownMenuItem(value: cat, child: Text(cat)))
-                    .toList(),
-                onChanged: (val) =>
-                    setModalState(() => selectedCategory = val!),
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFE53935),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                  onPressed: () {
-                    if (titleController.text.isNotEmpty &&
-                        priceController.text.isNotEmpty) {
-                      IconData catIcon = Icons.build_circle;
-                      if (selectedCategory == 'Топливо')
-                        catIcon = Icons.local_gas_station;
-                      if (selectedCategory == 'Страховка')
-                        catIcon = Icons.description;
-                      if (selectedCategory == 'Мойка / Прочее')
-                        catIcon = Icons.local_car_wash;
-
-                      setState(() {
-                        _logs.insert(0, {
-                          'title': titleController.text,
-                          'subtitle': '${_mileage.toInt()} км • Только что',
-                          'price': '${priceController.text} грн',
-                          'category': selectedCategory,
-                          'icon': catIcon,
-                        });
-                      });
-                      _saveData();
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Запись добавлена!')));
-                    }
-                  },
-                  child: const Text('Сохранить запись',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold)),
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );
@@ -1548,25 +1915,20 @@ class _HomeScreenState extends State<HomeScreen> {
                   double? newMileage = double.tryParse(mileageController.text);
                   if (newMileage != null) {
                     int mileageDiff = (newMileage - _mileage).toInt();
-
-                    setState(() {
-                      _mileage = newMileage;
-                      for (var car in _cars) {
-                        if (car['name'] == _currentCarName) {
-                          car['mileage'] = newMileage;
-                        }
-                      }
-                    });
-
                     if (mileageDiff > 0) {
                       _applyMileageDelta(mileageDiff);
+                    } else {
+                      setState(() {
+                        _mileage = newMileage;
+                      });
+                      _saveData();
                     }
-
-                    _saveData();
                     Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        content: Text(
-                            'Пробег обновлен: ${_mileage.toInt()} км (+$mileageDiff км)')));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                          content:
+                              Text('Пробег обновлен: ${_mileage.toInt()} км')),
+                    );
                   }
                 },
                 child: const Text('Сохранить пробег',
@@ -1586,10 +1948,14 @@ class _HomeScreenState extends State<HomeScreen> {
     var part = _carParts[index];
     int remaining = part['remainingKm'];
     int maxKm = part['maxKm'] ?? 10000;
-    double progress = 1.0 - (remaining / maxKm);
+    double progress = maxKm > 0 ? (1.0 - (remaining / maxKm)) : 0;
     if (progress < 0) progress = 0;
     if (progress > 1) progress = 1;
+
     final costController = TextEditingController(text: '1500');
+    final customRemainingController =
+        TextEditingController(text: remaining.toString());
+    final customMaxController = TextEditingController(text: maxKm.toString());
 
     showModalBottomSheet(
       context: context,
@@ -1606,155 +1972,198 @@ class _HomeScreenState extends State<HomeScreen> {
             top: 20,
             bottom: MediaQuery.of(context).viewInsets.bottom + 20,
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(part['icon'], color: part['color'], size: 28),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(part['title'],
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold)),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF2C2C30),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('Остаток ресурса:',
-                            style: TextStyle(color: Colors.grey, fontSize: 13)),
-                        Text('$remaining км из $maxKm км',
-                            style: TextStyle(
-                                color: part['color'],
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold)),
-                      ],
+                    Icon(part['icon'], color: part['color'], size: 28),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(part['title'],
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold)),
                     ),
-                    const SizedBox(height: 10),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(6),
-                      child: LinearProgressIndicator(
-                        value: progress,
-                        backgroundColor: Colors.black26,
-                        valueColor:
-                            AlwaysStoppedAnimation<Color>(part['color']),
-                        minHeight: 8,
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2C2C30),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Остаток ресурса:',
+                              style:
+                                  TextStyle(color: Colors.grey, fontSize: 13)),
+                          Text('$remaining км из $maxKm км',
+                              style: TextStyle(
+                                  color: part['color'],
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: LinearProgressIndicator(
+                          value: progress,
+                          backgroundColor: Colors.black26,
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(part['color']),
+                          minHeight: 8,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text('Настройка ресурса вручную:',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: customRemainingController,
+                        style: const TextStyle(color: Colors.white),
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: 'Остаток (км)',
+                          labelStyle: const TextStyle(color: Colors.grey),
+                          filled: true,
+                          fillColor: const Color(0xFF2C2C30),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: customMaxController,
+                        style: const TextStyle(color: Colors.white),
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: 'Ресурс (км)',
+                          labelStyle: const TextStyle(color: Colors.grey),
+                          filled: true,
+                          fillColor: const Color(0xFF2C2C30),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none),
+                        ),
                       ),
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 16),
-              const Text('История замен узла:',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              SizedBox(
-                height: 100,
-                child: (part['history'] as List).isEmpty
-                    ? const Center(
-                        child: Text('Нет записей о замене',
-                            style: TextStyle(color: Colors.grey, fontSize: 12)))
-                    : ListView.builder(
-                        itemCount: (part['history'] as List).length,
-                        itemBuilder: (context, hIndex) {
-                          var h = part['history'][hIndex];
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 6),
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                                color: const Color(0xFF2C2C30),
-                                borderRadius: BorderRadius.circular(8)),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text('${h['mileage']} км • ${h['date']}',
-                                    style: const TextStyle(
-                                        color: Colors.grey, fontSize: 11)),
-                                Text(h['cost'],
-                                    style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.bold)),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: costController,
-                style: const TextStyle(color: Colors.white),
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: 'Стоимость новой замены (грн)',
-                  labelStyle: const TextStyle(color: Colors.grey),
-                  filled: true,
-                  fillColor: const Color(0xFF2C2C30),
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none),
-                ),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFE53935),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.grey),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: () {
+                      int? newRem =
+                          int.tryParse(customRemainingController.text);
+                      int? newMax = int.tryParse(customMaxController.text);
+                      if (newRem != null && newMax != null) {
+                        setState(() {
+                          part['remainingKm'] = newRem;
+                          part['maxKm'] = newMax;
+                          part['subtitle'] =
+                              newRem > 0 ? 'настроено' : 'требует замены';
+                          part['color'] = newRem > 0
+                              ? Colors.blueAccent
+                              : const Color(0xFFE53935);
+                        });
+                        _saveData();
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text('Параметры узла обновлены')));
+                      }
+                    },
+                    child: const Text('Сохранить настройку ресурса',
+                        style: TextStyle(color: Colors.white)),
                   ),
-                  onPressed: () {
-                    String costText = costController.text;
-                    setState(() {
-                      part['remainingKm'] = maxKm;
-                      part['subtitle'] = 'норма';
-                      part['color'] = Colors.green;
-                      (part['history'] as List).insert(0, {
-                        'date': 'Только что',
-                        'mileage': _mileage.toInt(),
-                        'cost': '$costText грн',
-                      });
-
-                      _logs.insert(0, {
-                        'title': 'Замена: ${part['title']}',
-                        'subtitle': '${_mileage.toInt()} км • Только что',
-                        'price': '$costText грн',
-                        'category': 'ТО и ремонт',
-                        'icon': part['icon'],
-                      });
-                    });
-                    _saveData();
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        content: Text('${part['title']} успешно заменен(а)!')));
-                  },
-                  child: const Text('Заменить сейчас (сбросить ресурс)',
-                      style: TextStyle(
-                          color: Colors.white, fontWeight: FontWeight.bold)),
                 ),
-              ),
-            ],
+                const SizedBox(height: 16),
+                TextField(
+                  controller: costController,
+                  style: const TextStyle(color: Colors.white),
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: 'Стоимость замены (грн)',
+                    labelStyle: const TextStyle(color: Colors.grey),
+                    filled: true,
+                    fillColor: const Color(0xFF2C2C30),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFE53935),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: () {
+                      String costText = costController.text;
+                      int fullMax = part['maxKm'] ?? 10000;
+                      setState(() {
+                        part['remainingKm'] = fullMax;
+                        part['subtitle'] = 'норма';
+                        part['color'] = Colors.green;
+                        (part['history'] as List).insert(0, {
+                          'date': 'Только что',
+                          'mileage': _mileage.toInt(),
+                          'cost': '$costText грн',
+                        });
+
+                        _logs.insert(0, {
+                          'title': 'Замена: ${part['title']}',
+                          'subtitle': '${_mileage.toInt()} км • Только что',
+                          'price': '$costText грн',
+                          'category': 'ТО и ремонт',
+                          'icon': part['icon'],
+                        });
+                      });
+                      _saveData();
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                          content: Text(
+                              '${part['title']} заменен, ресурс сброшен до $fullMax км!')));
+                    },
+                    child: const Text('Заменить сейчас (сбросить ресурс)',
+                        style: TextStyle(
+                            color: Colors.white, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -1935,7 +2344,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           ListTile(
             leading: const Icon(Icons.calculate, color: Colors.white),
-            title: const Text('Калькулятор поездки',
+            title: const Text('Калькулятор и поездки',
                 style: TextStyle(color: Colors.white)),
             onTap: () {
               Navigator.pop(context);
@@ -1972,6 +2381,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildHomeTab() {
+    var insuranceStatus = _getInsuranceStatus();
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -2158,6 +2569,65 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
+          const SizedBox(height: 16),
+          GestureDetector(
+            onTap: _showInsuranceDialog,
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E1E22),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: insuranceStatus['color'], width: 1.5),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: insuranceStatus['color'].withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(Icons.description,
+                            color: insuranceStatus['color'], size: 24),
+                      ),
+                      const SizedBox(width: 14),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Полис страхования',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 2),
+                          Text(
+                              '${_insuranceData['company']} • ${_insuranceData['policyNumber']}',
+                              style: const TextStyle(
+                                  color: Colors.grey, fontSize: 12)),
+                        ],
+                      ),
+                    ],
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(insuranceStatus['text'],
+                          style: TextStyle(
+                              color: insuranceStatus['color'],
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 2),
+                      const Text('Нажмите для правки',
+                          style: TextStyle(color: Colors.grey, fontSize: 10)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
           const SizedBox(height: 24),
           const Text('Состояние автомобиля и узлы',
               style: TextStyle(
@@ -2234,7 +2704,41 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          ..._logs.take(3).map((log) => _buildLogItem(log)),
+          _logs.isEmpty
+              ? const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20),
+                  child: Center(
+                      child: Text('Нет записей о расходах для этого авто',
+                          style: TextStyle(color: Colors.grey))),
+                )
+              : Column(
+                  children: _logs.take(3).toList().asMap().entries.map((entry) {
+                    int index = entry.key;
+                    var log = entry.value;
+                    return Dismissible(
+                      key: Key('log_${index}_${log['title']}'),
+                      direction: DismissDirection.endToStart,
+                      background: Container(
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.only(right: 20),
+                        margin: const EdgeInsets.only(bottom: 10),
+                        decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(16)),
+                        child: const Icon(Icons.delete, color: Colors.white),
+                      ),
+                      onDismissed: (direction) {
+                        setState(() {
+                          _logs.removeAt(index);
+                        });
+                        _saveData();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Расход удален')));
+                      },
+                      child: _buildLogItemWithCheckbox(log, index),
+                    );
+                  }).toList(),
+                ),
           const SizedBox(height: 24),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -2251,20 +2755,30 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          ..._reminders.asMap().entries.map((entry) {
-            int index = entry.key;
-            var rem = entry.value;
-            return buildReminderCard(
-              icon: rem['icon'] ?? Icons.notifications,
-              iconBgColor: rem['iconBgColor'] ?? const Color(0xFFE53935),
-              title: rem['title'],
-              subtitle: rem['deadline'],
-              isUrgent: rem['isUrgent'] == true,
-              progress: rem['progress'],
-              onTap: () =>
-                  _showAddReminderDialog(reminderToEdit: rem, editIndex: index),
-            );
-          }),
+          _reminders.isEmpty
+              ? const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20),
+                  child: Center(
+                      child: Text('Нет активных напоминаний',
+                          style: TextStyle(color: Colors.grey))),
+                )
+              : Column(
+                  children: _reminders.asMap().entries.map((entry) {
+                    int index = entry.key;
+                    var rem = entry.value;
+                    return buildReminderCard(
+                      icon: rem['icon'] ?? Icons.notifications,
+                      iconBgColor:
+                          rem['iconBgColor'] ?? const Color(0xFFE53935),
+                      title: rem['title'],
+                      subtitle: rem['deadline'],
+                      isUrgent: rem['isUrgent'] == true,
+                      progress: rem['progress'],
+                      onTap: () => _showAddReminderDialog(
+                          reminderToEdit: rem, editIndex: index),
+                    );
+                  }).toList(),
+                ),
         ],
       ),
     );
@@ -2311,24 +2825,18 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      Text(title,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold)),
                       const SizedBox(height: 4),
-                      Text(
-                        subtitle,
-                        style: TextStyle(
-                          color: isUrgent ? Colors.redAccent : Colors.grey[400],
-                          fontSize: 14,
-                          fontWeight:
-                              isUrgent ? FontWeight.w500 : FontWeight.normal,
-                        ),
-                      ),
+                      Text(subtitle,
+                          style: TextStyle(
+                              color: isUrgent
+                                  ? Colors.redAccent
+                                  : Colors.grey[400],
+                              fontSize: 14)),
                     ],
                   ),
                 ),
@@ -2343,8 +2851,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   value: progress,
                   backgroundColor: Colors.grey[800],
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    isUrgent ? Colors.redAccent : Colors.blueAccent,
-                  ),
+                      isUrgent ? Colors.redAccent : Colors.blueAccent),
                   minHeight: 6,
                 ),
               ),
@@ -2381,194 +2888,212 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         const SizedBox(height: 16),
-        ..._cars.asMap().entries.map((entry) {
-          int index = entry.key;
-          var car = entry.value;
-          return Dismissible(
-            key: Key(car['name'] + index.toString()),
-            direction: DismissDirection.endToStart,
-            background: Container(
-              alignment: Alignment.centerRight,
-              padding: const EdgeInsets.only(right: 20),
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(
-                  color: Colors.red, borderRadius: BorderRadius.circular(20)),
-              child: const Icon(Icons.delete, color: Colors.white),
-            ),
-            onDismissed: (direction) {
-              setState(() {
-                _cars.removeAt(index);
-                if (_currentCarName == car['name'] && _cars.isNotEmpty) {
-                  _currentCarName = _cars[0]['name'];
-                  _currentCarDetails = _cars[0]['details'];
-                  _currentCarPlate = _cars[0]['plate'];
-                  _mileage = _cars[0]['mileage'];
-                  _currentCarImage = _cars[0]['imagePath'];
-                  _currentSeasonTyre =
-                      _cars[0]['seasonTyre'] ?? 'Летняя резина';
-                }
-              });
-              _saveData();
-              ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Автомобиль удален из гаража')));
-            },
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 16),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E1E22),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: car['name'] == _currentCarName
-                      ? const Color(0xFFE53935)
-                      : Colors.white.withOpacity(0.05),
-                  width: 1.5,
+        _cars.isEmpty
+            ? const Padding(
+                padding: EdgeInsets.symmetric(vertical: 60),
+                child: Center(
+                  child: Text(
+                    'В гараже пока нет автомобилей.\nДобавьте первое авто!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.grey, fontSize: 14),
+                  ),
                 ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (car['imagePath'] != null) ...[
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.file(File(car['imagePath']),
-                          height: 150,
-                          width: double.infinity,
-                          fit: BoxFit.cover),
+              )
+            : Column(
+                children: _cars.asMap().entries.map((entry) {
+                  int index = entry.key;
+                  var car = entry.value;
+                  bool isActive = car['id'] == _activeCarId;
+                  return Dismissible(
+                    key: Key(car['id'] ?? index.toString()),
+                    direction: DismissDirection.endToStart,
+                    background: Container(
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.only(right: 20),
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(20)),
+                      child: const Icon(Icons.delete, color: Colors.white),
                     ),
-                    const SizedBox(height: 12),
-                  ],
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(8)),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(2),
-                                  decoration: BoxDecoration(
-                                      color: Colors.blue[800],
-                                      borderRadius: BorderRadius.circular(2)),
-                                  child: const Text('UA',
-                                      style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 8,
-                                          fontWeight: FontWeight.bold)),
-                                ),
-                                const SizedBox(width: 6),
-                                Text(car['plate'],
-                                    style: const TextStyle(
-                                        color: Colors.black,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13)),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.08),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(car['seasonTyre'] ?? 'Летняя резина',
-                                style: const TextStyle(
-                                    color: Colors.grey, fontSize: 10)),
-                          ),
-                        ],
+                    onDismissed: (direction) {
+                      setState(() {
+                        _cars.removeAt(index);
+                        if (isActive && _cars.isNotEmpty) {
+                          _loadCarSpecificData(_cars[0]['id']);
+                        } else if (_cars.isEmpty) {
+                          _activeCarId = 'default_car';
+                          _currentCarName = 'Мой автомобиль';
+                          _currentCarDetails = 'Добавьте параметры';
+                          _currentCarPlate = 'AA 0000 AA';
+                          _mileage = 0.0;
+                          _currentCarImage = null;
+                          _resetDefaultParts();
+                          _logs.clear();
+                          _refuels.clear();
+                          _reminders.clear();
+                          _trips.clear();
+                        }
+                      });
+                      _saveData();
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                          content: Text('Автомобиль удален из гаража')));
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E1E22),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: isActive
+                              ? const Color(0xFFE53935)
+                              : Colors.white.withOpacity(0.05),
+                          width: 1.5,
+                        ),
                       ),
-                      Row(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          IconButton(
-                            icon: const Icon(Icons.edit,
-                                color: Colors.grey, size: 20),
-                            onPressed: () => _showAddCarDialog(
-                                carToEdit: car, editIndex: index),
+                          if (car['imagePath'] != null) ...[
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Image.file(File(car['imagePath']),
+                                  height: 150,
+                                  width: double.infinity,
+                                  fit: BoxFit.cover),
+                            ),
+                            const SizedBox(height: 12),
+                          ],
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 4),
+                                    decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(8)),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(2),
+                                          decoration: BoxDecoration(
+                                              color: Colors.blue[800],
+                                              borderRadius:
+                                                  BorderRadius.circular(2)),
+                                          child: const Text('UA',
+                                              style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 8,
+                                                  fontWeight: FontWeight.bold)),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(car['plate'],
+                                            style: const TextStyle(
+                                                color: Colors.black,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 13)),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.08),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                        car['seasonTyre'] ?? 'Летняя резина',
+                                        style: const TextStyle(
+                                            color: Colors.grey, fontSize: 10)),
+                                  ),
+                                ],
+                              ),
+                              Row(
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.edit,
+                                        color: Colors.grey, size: 20),
+                                    onPressed: () => _showAddCarDialog(
+                                        carToEdit: car, editIndex: index),
+                                  ),
+                                  if (isActive)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                          color: const Color(0xFFE53935)
+                                              .withOpacity(0.2),
+                                          borderRadius:
+                                              BorderRadius.circular(8)),
+                                      child: const Text('Активный',
+                                          style: TextStyle(
+                                              color: Color(0xFFE53935),
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold)),
+                                    ),
+                                ],
+                              ),
+                            ],
                           ),
-                          if (car['name'] == _currentCarName)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                  color:
-                                      const Color(0xFFE53935).withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(8)),
-                              child: const Text('Активный',
-                                  style: TextStyle(
-                                      color: Color(0xFFE53935),
-                                      fontSize: 10,
+                          const SizedBox(height: 10),
+                          Text(car['name'],
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 2),
+                          Text(car['details'],
+                              style: const TextStyle(
+                                  color: Colors.grey, fontSize: 11)),
+                          const SizedBox(height: 12),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                  'Пробег: ${(car['mileage'] as num).toInt()} км',
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 13,
                                       fontWeight: FontWeight.bold)),
-                            ),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: isActive
+                                      ? Colors.grey[800]
+                                      : const Color(0xFFE53935),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10)),
+                                ),
+                                onPressed: () async {
+                                  await _loadCarSpecificData(car['id']);
+                                  setState(() {
+                                    _currentIndex = 0;
+                                  });
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                          content: Text(
+                                              'Интерфейс переключен на: ${car['name']}')));
+                                },
+                                child: Text(
+                                  isActive ? 'Выбрано' : 'Выбрать',
+                                  style: const TextStyle(
+                                      color: Colors.white, fontSize: 12),
+                                ),
+                              ),
+                            ],
+                          ),
                         ],
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Text(car['name'],
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 2),
-                  Text(car['details'],
-                      style: const TextStyle(color: Colors.grey, fontSize: 11)),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('Пробег: ${car['mileage'].toInt()} км',
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold)),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: car['name'] == _currentCarName
-                              ? Colors.grey[800]
-                              : const Color(0xFFE53935),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _currentCarName = car['name'];
-                            _currentCarDetails = car['details'];
-                            _currentCarPlate = car['plate'];
-                            _mileage = car['mileage'];
-                            _currentCarImage = car['imagePath'];
-                            _currentSeasonTyre =
-                                car['seasonTyre'] ?? 'Летняя резина';
-                            _currentIndex = 0;
-                          });
-                          _saveData();
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                              content:
-                                  Text('Выбран автомобиль: ${car['name']}')));
-                        },
-                        child: Text(
-                          car['name'] == _currentCarName
-                              ? 'Выбрано'
-                              : 'Выбрать',
-                          style: const TextStyle(
-                              color: Colors.white, fontSize: 12),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                    ),
+                  );
+                }).toList(),
               ),
-            ),
-          );
-        }),
       ],
     );
   }
@@ -2658,52 +3183,69 @@ class _HomeScreenState extends State<HomeScreen> {
                 fontSize: 18,
                 fontWeight: FontWeight.bold)),
         const SizedBox(height: 12),
-        if (_refuels.isEmpty)
-          const Center(
-              child: Padding(
-                  padding: EdgeInsets.all(40.0),
-                  child: Text('Нет записей о заправках',
-                      style: TextStyle(color: Colors.grey)))),
-        ..._refuels.map((ref) => Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E1E22),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
+        _refuels.isEmpty
+            ? const Center(
+                child: Padding(
+                    padding: EdgeInsets.all(40.0),
+                    child: Text('Нет записей о заправках',
+                        style: TextStyle(color: Colors.grey))))
+            : Column(
+                children: _refuels.asMap().entries.map((entry) {
+                  int index = entry.key;
+                  var ref = entry.value;
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                        color: const Color(0xFF2C2C30),
-                        borderRadius: BorderRadius.circular(12)),
-                    child: const Icon(Icons.local_gas_station,
-                        color: Color(0xFFE53935), size: 24),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      color: const Color(0xFF1E1E22),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
                       children: [
-                        Text('${ref['liters']} л • ${ref['price']} грн',
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 4),
-                        Text(
-                            'Пробег: ${ref['mileage'].toInt()} км | Расход: ${ref['consumption']} л/100км',
-                            style: const TextStyle(
-                                color: Colors.grey, fontSize: 11)),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                              color: const Color(0xFF2C2C30),
+                              borderRadius: BorderRadius.circular(12)),
+                          child: const Icon(Icons.local_gas_station,
+                              color: Color(0xFFE53935), size: 24),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('${ref['liters']} л • ${ref['price']} грн',
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold)),
+                              const SizedBox(height: 4),
+                              Text(
+                                  'Пробег: ${(ref['mileage'] as num).toInt()} км | Расход: ${ref['consumption']} л/100км',
+                                  style: const TextStyle(
+                                      color: Colors.grey, fontSize: 11)),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline,
+                              color: Colors.grey, size: 20),
+                          onPressed: () {
+                            setState(() {
+                              _refuels.removeAt(index);
+                            });
+                            _saveData();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content: Text('Запись заправки удалена')));
+                          },
+                        ),
                       ],
                     ),
-                  ),
-                  Text(ref['date'],
-                      style: const TextStyle(color: Colors.grey, fontSize: 11)),
-                ],
+                  );
+                }).toList(),
               ),
-            )),
       ],
     );
   }
@@ -2715,14 +3257,15 @@ class _HomeScreenState extends State<HomeScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('Расходы и статистика',
+            const Text('Расходы и поездки',
                 style: TextStyle(
                     color: Colors.white,
                     fontSize: 22,
                     fontWeight: FontWeight.bold)),
             IconButton(
-              icon: const Icon(Icons.add_circle, color: Color(0xFFE53935)),
-              onPressed: _showAddRecordDialog,
+              icon: const Icon(Icons.calculate, color: Color(0xFFE53935)),
+              tooltip: 'Калькулятор поездок',
+              onPressed: _showTripCalculatorDialog,
             ),
           ],
         ),
@@ -2748,18 +3291,103 @@ class _HomeScreenState extends State<HomeScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  _buildBar('Янв', 40),
-                  _buildBar('Фев', 30),
-                  _buildBar('Мар', 45),
-                  _buildBar('Апр', 45),
-                  _buildBar('Май', 50),
-                  _buildBar('Июн', 45),
-                  _buildBar('Июл', 80, isRed: true),
+                  _buildBar('Янв', 10),
+                  _buildBar('Фев', 10),
+                  _buildBar('Мар', 10),
+                  _buildBar('Апр', 10),
+                  _buildBar('Май', 10),
+                  _buildBar('Июн', 10),
+                  _buildBar('Июл', _totalExpenses > 0 ? 80.0 : 10.0,
+                      isRed: true),
                 ],
               ),
             ],
           ),
         ),
+        const SizedBox(height: 24),
+        // Раздел истории поездок (Требование 1)
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('История поездок',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold)),
+            TextButton(
+              onPressed: _showTripCalculatorDialog,
+              child: const Text('+ Рассчитать',
+                  style: TextStyle(color: Color(0xFFE53935), fontSize: 13)),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _trips.isEmpty
+            ? const Center(
+                child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 10),
+                    child: Text('Нет сохраненных поездок',
+                        style: TextStyle(color: Colors.grey))))
+            : Column(
+                children: _trips.asMap().entries.map((entry) {
+                  int index = entry.key;
+                  var trip = entry.value;
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1E1E22),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                              color: const Color(0xFF2C2C30),
+                              borderRadius: BorderRadius.circular(10)),
+                          child: const Icon(Icons.alt_route,
+                              color: Colors.blueAccent, size: 20),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('${trip['from']} → ${trip['to']}',
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold)),
+                              const SizedBox(height: 2),
+                              Text(
+                                  '${trip['distance']} км • ${trip['liters']} л',
+                                  style: const TextStyle(
+                                      color: Colors.grey, fontSize: 11)),
+                            ],
+                          ),
+                        ),
+                        Text('${trip['cost']} грн',
+                            style: const TextStyle(
+                                color: Color(0xFFE53935),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14)),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline,
+                              color: Colors.grey, size: 18),
+                          onPressed: () {
+                            setState(() {
+                              _trips.removeAt(index);
+                            });
+                            _saveData();
+                          },
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
         const SizedBox(height: 24),
         const Text('История всех затрат',
             style: TextStyle(
@@ -2767,19 +3395,66 @@ class _HomeScreenState extends State<HomeScreen> {
                 fontSize: 18,
                 fontWeight: FontWeight.bold)),
         const SizedBox(height: 12),
-        ..._logs.map((log) => _buildLogItem(log)),
+        _logs.isEmpty
+            ? const Center(
+                child: Padding(
+                    padding: EdgeInsets.all(40.0),
+                    child: Text('Нет записей о расходах',
+                        style: TextStyle(color: Colors.grey))))
+            : Column(
+                children: _logs.asMap().entries.map((entry) {
+                  int index = entry.key;
+                  var log = entry.value;
+                  return _buildLogItemWithCheckbox(log, index);
+                }).toList(),
+              ),
       ],
     );
   }
 
-  Widget _buildLogItem(Map<String, dynamic> log) {
+  Widget _buildLogItemWithCheckbox(Map<String, dynamic> log, int index) {
+    bool isChecked = log['isChecked'] ?? false;
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
       decoration: BoxDecoration(
         color: const Color(0xFF1E1E22),
         borderRadius: BorderRadius.circular(16),
       ),
+      child: Row(
+        children: [
+          Checkbox(
+            value: isChecked,
+            activeColor: const Color(0xFFE53935),
+            onChanged: (val) {
+              setState(() {
+                log['isChecked'] = val ?? false;
+              });
+              _saveData();
+            },
+          ),
+          Expanded(child: _buildLogItem(log)),
+          IconButton(
+            icon:
+                const Icon(Icons.delete_outline, color: Colors.grey, size: 18),
+            onPressed: () {
+              setState(() {
+                _logs.removeAt(index);
+              });
+              _saveData();
+              ScaffoldMessenger.of(context)
+                  .showSnackBar(const SnackBar(content: Text('Расход удален')));
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLogItem(Map<String, dynamic> log) {
+    bool isChecked = log['isChecked'] ?? false;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       child: Row(
         children: [
           Container(
@@ -2797,11 +3472,16 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Row(
                   children: [
-                    Text(log['title'],
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500)),
+                    Text(
+                      log['title'],
+                      style: TextStyle(
+                        color: isChecked ? Colors.grey : Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        decoration:
+                            isChecked ? TextDecoration.lineThrough : null,
+                      ),
+                    ),
                     const SizedBox(width: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -2822,8 +3502,8 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           Text(log['price'],
-              style: const TextStyle(
-                  color: Colors.white,
+              style: TextStyle(
+                  color: isChecked ? Colors.grey : Colors.white,
                   fontWeight: FontWeight.bold,
                   fontSize: 13)),
         ],
