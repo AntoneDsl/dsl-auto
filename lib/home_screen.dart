@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'dart:convert';
+import 'widgets/quick_actions_widget.dart';
 
 void main() {
   runApp(const MyApp());
@@ -980,7 +981,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Калькулятор поездки с историей (Требование 1)
+  // Калькулятор поездки с историей
   void _showTripCalculatorDialog() {
     final fromController = TextEditingController();
     final toController = TextEditingController();
@@ -1019,7 +1020,7 @@ class _HomeScreenState extends State<HomeScreen> {
           double distance = double.tryParse(distanceController.text) ?? 0.0;
           double consumption =
               double.tryParse(consumptionController.text) ?? 8.5;
-          double pricePerLiter = double.tryParse(priceController.text) ?? 0.0;
+          double pricePerLiter = double.tryParse(priceController.text) ?? 52.0;
 
           double totalLitersNeeded = (distance * consumption) / 100;
           double totalCost = totalLitersNeeded * pricePerLiter;
@@ -1263,6 +1264,7 @@ class _HomeScreenState extends State<HomeScreen> {
         reminderToEdit != null && reminderToEdit['progress'] != null
             ? 'По пробегу'
             : 'По дате';
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -1649,7 +1651,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         String uniqueId = carToEdit != null
                             ? carToEdit['id']
                             : DateTime.now().millisecondsSinceEpoch.toString();
-
                         setState(() {
                           if (carToEdit == null) {
                             _cars.add({
@@ -1862,7 +1863,6 @@ class _HomeScreenState extends State<HomeScreen> {
   void _showUpdateMileageDialog() {
     final mileageController =
         TextEditingController(text: _mileage.toInt().toString());
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -2888,6 +2888,20 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         const SizedBox(height: 16),
+        // 🚀 НАШИ БЫСТРЫЕ КНОПКИ
+        QuickActionsWidget(
+          logs: _logs,
+          onAddLog: (newLog) {
+            setState(() {
+              _logs.insert(0, newLog);
+            });
+          },
+          onOpenRefuel: () {
+            _showAddRefuelDialog();
+          },
+        ),
+
+        const SizedBox(height: 16),
         _cars.isEmpty
             ? const Padding(
                 padding: EdgeInsets.symmetric(vertical: 60),
@@ -3305,7 +3319,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         const SizedBox(height: 24),
-        // Раздел истории поездок (Требование 1)
+        // Раздел истории поездок
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
