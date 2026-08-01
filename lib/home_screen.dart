@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'dart:convert';
 import 'widgets/quick_actions_widget.dart';
+import 'widgets/service_resourse_widget.dart';
 
 void main() {
   runApp(const MyApp());
@@ -36,8 +37,38 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
+  // Объявляем список вот здесь:
+  List<Map<String, dynamic>> _myLogs = [];
+  double _calculateCurrentMonthTotal() {
+    final now = DateTime.now();
+    double total = 0;
 
-  String _userName = 'Александр';
+    // Убедись, что переменная со списком на главном экране называется logs
+    // (или замени 'logs' на имя твоего списка, если оно отличается)
+    for (var item in _myLogs) {
+      final price = double.tryParse(item['price']?.toString() ?? '0') ?? 0.0;
+
+      // Получаем дату из записи
+      final dateField = item['date'];
+      DateTime? itemDate;
+      if (dateField is DateTime) {
+        itemDate = dateField;
+      } else if (dateField is String) {
+        itemDate = DateTime.tryParse(dateField);
+      }
+
+      // Складываем только если запись относится к текущему году и месяцу
+      if (itemDate != null &&
+          itemDate.year == now.year &&
+          itemDate.month == now.month) {
+        total += price;
+      }
+    }
+
+    return total;
+  }
+
+  String _userName = 'Антон';
 
   // Ключ для привязки данных к конкретному автомобилю в гараже
   String _activeCarId = 'default_car';
@@ -2570,6 +2601,12 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           const SizedBox(height: 16),
+
+// 1. Блок быстрых кнопок
+          _buildQuickActions(context),
+
+          const SizedBox(height: 16),
+
           GestureDetector(
             onTap: _showInsuranceDialog,
             child: Container(
@@ -2898,9 +2935,15 @@ class _HomeScreenState extends State<HomeScreen> {
           },
           onOpenRefuel: () {
             _showAddRefuelDialog();
+            setState(() {});
           },
         ),
-
+        const SizedBox(height: 16),
+        ServiceResourceWidget(
+          currentMileage: _cars.isNotEmpty
+              ? (int.tryParse(_cars.first['mileage']?.toString() ?? '0') ?? 0)
+              : 0,
+        ),
         const SizedBox(height: 16),
         _cars.isEmpty
             ? const Padding(
@@ -3113,153 +3156,352 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildRefuelsTab() {
-    return ListView(
-      padding: const EdgeInsets.all(16.0),
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text('Учет заправок',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold)),
-            Row(
+    // Берём все логи (или фильтруем по категории 'refuel' / 'заправка', если нужно)
+    final refuelLogs = _logs.where((log) {
+      final type = log['type']?.toString().toLowerCase() ?? '';
+      final category = log['category']?.toString().toLowerCase() ?? '';
+      final title = log['title']?.toString().toLowerCase() ?? '';
+      return type.contains('refuel') ||
+          category.contains('refuel') ||
+          title.contains('заправка');
+    }).toList();
+
+    // Если отфильтрованный список пуст, используем _logs напрямую
+    final displayLogs = refuelLogs.isNotEmpty ? refuelLogs : _logs;
+
+    // Парсим числа из строк (убираем 'грн', 'л', пробелы)
+    double parseNum(dynamic val) {
+      if (val == null) return 0;
+      final str = val.toString().replaceAll(RegExp(r'[^\d.]'), '');
+      return double.tryParse(str) ?? 0;
+    }
+
+    // Считаем сумму и литры
+    double totalSpent = 0;
+    double totalLiters = 0;
+
+    for (var log in displayLogs) {
+      final costVal =
+          log['cost'] ?? log['price'] ?? log['totalCost'] ?? log['amount'] ?? 0;
+      // Поиск литров с проверкой названия из заголовка (например "10 л")
+      var litersVal = log['liters'] ??
+          log['fuelAmount'] ??
+          log['volume'] ??
+          log['amountLiters'];
+
+      if (litersVal == null && log['title'] != null) {
+        final match = RegExp(r'(\d+)\s*л').firstMatch(log['title'].toString());
+        if (match != null) litersVal = match.group(1);
+      }
+
+      totalSpent += parseNum(costVal);
+      totalLiters += parseNum(litersVal);
+    }
+
+    return CustomScrollView(
+      physics: const BouncingScrollPhysics(),
+      slivers: [
+        // 1. Шапка и Статистика
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                IconButton(
-                  icon: const Icon(Icons.calculate,
-                      color: Colors.white, size: 24),
-                  tooltip: 'Калькулятор поездки',
-                  onPressed: _showTripCalculatorDialog,
-                ),
-                const SizedBox(width: 4),
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFE53935),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                  onPressed: _showAddRefuelDialog,
-                  icon: const Icon(Icons.add, color: Colors.white, size: 18),
-                  label: const Text('Заправить',
-                      style: TextStyle(color: Colors.white)),
-                ),
-              ],
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1E1E22),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              Column(
-                children: [
-                  const Text('Средний расход',
-                      style: TextStyle(color: Colors.grey, fontSize: 11)),
-                  const SizedBox(height: 4),
-                  Text(
-                      _refuels.isNotEmpty
-                          ? '${_refuels.first['consumption']} л/100км'
-                          : '0 л',
-                      style: const TextStyle(
-                          color: Color(0xFFE53935),
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold)),
-                ],
-              ),
-              Container(
-                  width: 1, height: 30, color: Colors.white.withOpacity(0.1)),
-              Column(
-                children: [
-                  const Text('Всего заправок',
-                      style: TextStyle(color: Colors.grey, fontSize: 11)),
-                  const SizedBox(height: 4),
-                  Text('${_refuels.length}',
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold)),
-                ],
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 20),
-        const Text('История заправок',
-            style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold)),
-        const SizedBox(height: 12),
-        _refuels.isEmpty
-            ? const Center(
-                child: Padding(
-                    padding: EdgeInsets.all(40.0),
-                    child: Text('Нет записей о заправках',
-                        style: TextStyle(color: Colors.grey))))
-            : Column(
-                children: _refuels.asMap().entries.map((entry) {
-                  int index = entry.key;
-                  var ref = entry.value;
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1E1E22),
-                      borderRadius: BorderRadius.circular(16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Учет заправок',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    child: Row(
+                    Row(
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                              color: const Color(0xFF2C2C30),
-                              borderRadius: BorderRadius.circular(12)),
-                          child: const Icon(Icons.local_gas_station,
-                              color: Color(0xFFE53935), size: 24),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('${ref['liters']} л • ${ref['price']} грн',
-                                  style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold)),
-                              const SizedBox(height: 4),
-                              Text(
-                                  'Пробег: ${(ref['mileage'] as num).toInt()} км | Расход: ${ref['consumption']} л/100км',
-                                  style: const TextStyle(
-                                      color: Colors.grey, fontSize: 11)),
-                            ],
-                          ),
-                        ),
                         IconButton(
-                          icon: const Icon(Icons.delete_outline,
-                              color: Colors.grey, size: 20),
-                          onPressed: () {
-                            setState(() {
-                              _refuels.removeAt(index);
-                            });
-                            _saveData();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                    content: Text('Запись заправки удалена')));
-                          },
+                          icon: const Icon(Icons.calculate,
+                              color: Colors.white, size: 24),
+                          tooltip: 'Калькулятор поездки',
+                          onPressed: _showTripCalculatorDialog,
+                        ),
+                        const SizedBox(width: 4),
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFE53935),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          onPressed: _showAddRefuelDialog,
+                          icon: const Icon(Icons.add,
+                              color: Colors.white, size: 18),
+                          label: const Text('Заправить',
+                              style: TextStyle(color: Colors.white)),
                         ),
                       ],
                     ),
-                  );
-                }).toList(),
-              ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // 📊 Анимированная карточка статистики
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(24),
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF2C1435), Color(0xFF151828)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.purple.withOpacity(0.15),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                    border: Border.all(color: Colors.white.withOpacity(0.1)),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _buildRefuelStatItem(
+                            'Потрачено',
+                            '${totalSpent.toStringAsFixed(0)} ₴',
+                            Icons.account_balance_wallet,
+                            Colors.purpleAccent,
+                          ),
+                          _buildRefuelStatItem(
+                            'Залито всего',
+                            '${totalLiters.toStringAsFixed(1)} л',
+                            Icons.local_gas_station,
+                            Colors.orangeAccent,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      const Divider(color: Colors.white10),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Всего заправок:',
+                              style:
+                                  TextStyle(color: Colors.grey, fontSize: 13)),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.blueAccent.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              '${displayLogs.length} раз',
+                              style: const TextStyle(
+                                color: Colors.blueAccent,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        // 2. Список заправок
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          sliver: displayLogs.isEmpty
+              ? SliverToBoxAdapter(
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(40.0),
+                      child: Column(
+                        children: [
+                          Icon(Icons.ev_station,
+                              size: 64, color: Colors.grey.shade700),
+                          const SizedBox(height: 12),
+                          const Text('Заправок пока нет',
+                              style: TextStyle(color: Colors.grey)),
+                        ],
+                      ),
+                    ),
+                  ),
+                )
+              : SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final log = displayLogs[index];
+
+                      // Красиво достаем литры и стоимость
+                      double litersParsed = parseNum(
+                          log['liters'] ?? log['fuelAmount'] ?? log['volume']);
+                      if (litersParsed == 0 && log['title'] != null) {
+                        final match = RegExp(r'(\d+)\s*л')
+                            .firstMatch(log['title'].toString());
+                        if (match != null)
+                          litersParsed = double.tryParse(match.group(1)!) ?? 0;
+                      }
+
+                      final costStr = (log['cost'] ??
+                              log['price'] ??
+                              log['totalCost'] ??
+                              log['amount'] ??
+                              '')
+                          .toString()
+                          .replaceAll('грн', '')
+                          .trim();
+
+                      // final mileage = log['mileage'] ??
+                      log['currentMileage'] ??
+                          log['odometer'] ??
+                          log['km'] ??
+                          '—';
+                      final title = log['title'] ?? log['date'] ?? 'Заправка';
+
+                      return TweenAnimationBuilder<double>(
+                        duration: Duration(milliseconds: 300 + (index * 80)),
+                        tween: Tween(begin: 0.0, end: 1.0),
+                        builder: (context, value, child) {
+                          return Transform.translate(
+                            offset: Offset(0, (1 - value) * 25),
+                            child: Opacity(
+                              opacity: value,
+                              child: Container(
+                                margin: const EdgeInsets.only(bottom: 12),
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF1E1E22),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                      color: Colors.white.withOpacity(0.05)),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 46,
+                                      height: 46,
+                                      decoration: BoxDecoration(
+                                        color:
+                                            Colors.redAccent.withOpacity(0.15),
+                                        borderRadius: BorderRadius.circular(14),
+                                      ),
+                                      child: const Icon(
+                                        Icons.local_gas_station_rounded,
+                                        color: Colors.redAccent,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 14),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            title.toString(),
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            (log['mileage'] ??
+                                                        log['currentMileage'] ??
+                                                        log['odometer'] ??
+                                                        log['km']) !=
+                                                    null
+                                                ? '${log['mileage'] ?? log['currentMileage'] ?? log['odometer'] ?? log['km']} км'
+                                                : (log['date'] ??
+                                                        log['dateTime'] ??
+                                                        log['timestamp'] ??
+                                                        log['createdAt'] ??
+                                                        'Заправка')
+                                                    .toString(),
+                                            style: const TextStyle(
+                                              color: Colors.grey,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.end,
+                                      children: [
+                                        Text(
+                                          '+${litersParsed.toStringAsFixed(0)} л',
+                                          style: const TextStyle(
+                                            color: Colors.greenAccent,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 15,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          '$costStr ₴',
+                                          style: const TextStyle(
+                                              color: Colors.grey, fontSize: 12),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                    childCount: displayLogs.length,
+                  ),
+                ),
+        ),
+      ],
+    );
+  }
+
+// Вспомогательный виджет для элементов статистики (поставь его сразу под функцией выше)
+
+// Вспомогательный элемент статистики (вставь его прямо под методом _buildRefuelsTab)
+  Widget _buildRefuelStatItem(
+      String title, String value, IconData icon, Color color) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.15),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: color, size: 20),
+        ),
+        const SizedBox(width: 10),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title,
+                style: const TextStyle(color: Colors.grey, fontSize: 11)),
+            Text(value,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold)),
+          ],
+        ),
       ],
     );
   }
@@ -3486,14 +3728,18 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Row(
                   children: [
-                    Text(
-                      log['title'],
-                      style: TextStyle(
-                        color: isChecked ? Colors.grey : Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        decoration:
-                            isChecked ? TextDecoration.lineThrough : null,
+                    Flexible(
+                      child: Text(
+                        log['title']?.toString() ?? '',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: isChecked ? Colors.grey : Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          decoration:
+                              isChecked ? TextDecoration.lineThrough : null,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 6),
@@ -3560,6 +3806,139 @@ class _HomeScreenState extends State<HomeScreen> {
                   color: isSelected ? const Color(0xFFE53935) : Colors.grey,
                   fontSize: 9)),
         ],
+      ),
+    );
+  }
+
+  // 1. Умная карточка узла (ТО) с прогресс-баром
+  Widget _buildFluidCard({
+    required String title,
+    required int currentKm,
+    required int maxKm,
+    required IconData icon,
+    required Color color,
+  }) {
+    double progress = (currentKm / maxKm).clamp(0.0, 1.0);
+
+    return Container(
+      width: 140,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E1E22),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 24),
+          const SizedBox(height: 8),
+          Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: Colors.grey, fontSize: 11),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '$currentKm км',
+            style: const TextStyle(
+                color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: progress,
+              backgroundColor: Colors.white12,
+              color: progress > 0.8 ? Colors.redAccent : color,
+              minHeight: 4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+// 2. Блок быстрых действий
+  // Быстрые действия
+  Widget _buildQuickActions(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildActionButton(
+            label: 'Заправка',
+            icon: Icons.local_gas_station,
+            color: Colors.redAccent,
+            onTap: () {
+              _showAddRefuelDialog();
+            },
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _buildActionButton(
+            label: 'Сервис',
+            icon: Icons.build,
+            color: Colors.blueAccent,
+            onTap: () {
+              _showAddRecordDialog();
+            },
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _buildActionButton(
+            label: 'Заметка',
+            icon: Icons.note_add,
+            color: Colors.orangeAccent,
+            onTap: () {
+              _showAddRecordDialog();
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Карточка общих трат за месяц
+
+  // Кнопка для быстрого действия
+  Widget _buildActionButton({
+    required String label,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: color.withOpacity(0.3)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: color, size: 20),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  color: color,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
