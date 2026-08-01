@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ServiceResourceWidget extends StatefulWidget {
   final int currentMileage;
+  final String carId; // Добавили ID машины
 
   const ServiceResourceWidget({
     super.key,
     required this.currentMileage,
+    required this.carId, // Требуем передавать ID при создании
   });
 
   @override
@@ -13,6 +16,43 @@ class ServiceResourceWidget extends StatefulWidget {
 }
 
 class _ServiceResourceWidgetState extends State<ServiceResourceWidget> {
+  @override
+  void initState() {
+    super.initState();
+    _loadCarData();
+  }
+
+  @override
+  void didUpdateWidget(covariant ServiceResourceWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.carId != widget.carId) {
+      _loadCarData();
+    }
+  }
+
+  // Загружаем данные для конкретной машины
+  Future<void> _loadCarData() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      oilInterval = prefs.getInt('oilInterval_${widget.carId}') ?? 10000;
+      brakeInterval = prefs.getInt('brakeInterval_${widget.carId}') ?? 30000;
+      serviceInterval =
+          prefs.getInt('serviceInterval_${widget.carId}') ?? 15000;
+
+      lastOilChangeKm = prefs.getInt('lastOil_${widget.carId}') ?? 0;
+      lastBrakeChangeKm = prefs.getInt('lastBrake_${widget.carId}') ?? 0;
+      lastServiceChangeKm = prefs.getInt('lastService_${widget.carId}') ?? 0;
+    });
+  }
+
+  // Сохраняем настройки интервалов для этой машины
+  Future<void> _saveIntervals() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('oilInterval_${widget.carId}', oilInterval);
+    await prefs.setInt('brakeInterval_${widget.carId}', brakeInterval);
+    await prefs.setInt('serviceInterval_${widget.carId}', serviceInterval);
+  }
+
   // Интервалы (через сколько км менять)
   int oilInterval = 10000;
   int brakeInterval = 30000;

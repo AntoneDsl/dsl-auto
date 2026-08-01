@@ -2940,9 +2940,15 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         const SizedBox(height: 16),
         ServiceResourceWidget(
-          currentMileage: _cars.isNotEmpty
-              ? (int.tryParse(_cars.first['mileage']?.toString() ?? '0') ?? 0)
-              : 0,
+          currentMileage: () {
+            // Ищем активную машину в списке _cars
+            final activeCar = _cars.firstWhere(
+              (car) => car['id'] == _activeCarId,
+              orElse: () => _cars.isNotEmpty ? _cars.first : {},
+            );
+            return int.tryParse(activeCar['mileage']?.toString() ?? '0') ?? 0;
+          }(),
+          carId: _activeCarId,
         ),
         const SizedBox(height: 16),
         _cars.isEmpty
